@@ -1,0 +1,344 @@
+Making Large Projects Go
+or "A Few of My Favorite Things"
+6 Jun 2017
+Tags: go, packages, getitng-started, distsys, rpc
+
+Barak Michener
+Founder, CayleyGraph
+me@barakmich.com
+@barakmich
+
+* Who am I?
+
+- Gopher since 2013
+- Worked on a few of the top 20 Github Go projects
+- Startup founder (but who isn't in the Valley?)
+
+* Grab Bag of Topics!
+
+You all gave me a good list!
+
+- Distributed Agents and Protocols
+- Storing Distributed State
+- Being Modular With Go
+- Performance of Go vs C/C++
+- Testing patterns in Go
+- "These are things I know now that I wish I knew"
+
+* Let's tackle some themes
+
+- Code Organization And Go
+- Libraries in the Wild
+- Distributed Systems Tooling
+
+\...with protips "I wish I knew" thrown in
+
+* Always remember
+
+Best protip from the community last week:
+
+[[https://twitter.com/rakyll/status/869762601642799104]["#golang pro tip: Don’t blindly apply dogmatic advice, use your judgment each and every time." - @rakyll]]
+
+^ Go team member and the author of some of the better tracing/debugging tools
+
+* Code Organization And Go
+
+* Packages
+
+Start with a single package, and work your way up to structure.
+
+- `cmd` may be an exception
+
+* Interfaces
+
+Coolest part of Go. Halfway to typeclasses.
+
+Easiest way to provide polymorphism.
+
+_Protip_ Keep them small; more interfaces is better (and they can be composed)
+
+* Interfaces
+
+Implement, when you can, the ones in the standard library
+
+  package io
+
+  type Writer {
+    Write(b []byte) (n int, err error)
+  }
+   
+  type Reader {
+    Read(b []byte) (n int, err error)
+  }
+
+  type ReadWriter {
+    Writer
+    Reader
+  }
+
+* Interfaces
+
+Opinion: Start with concrete types. Create interfaces when you're ready. Interfaces often indicate a package boundary.
+
+* Testing
+
+Use the Go standard testing framework. There are other packages, but they often cause more overhead than you need.
+
+* Testing
+
+The old pattern (pre 1.7) was to provide test tables. Still works for some cases.
+
+  func TestToUpper(t *testing.T) {
+    var tt := []struct{name string, input string, expected string}{
+      {
+        name:"caps works",
+        input: "somestring",
+        expected: "SOMESTRING",
+      },
+      ...
+    }
+
+    for _, x := range tt {
+      ....
+    }
+  }
+
+* Testing
+
+The new pattern (1.7+) is similar but allows for subtests, which allows for more flexible patterns
+
+  func TestToUpper(t *testing.T) {
+    var tt := []struct{name string, input string, expected string}{
+      {
+        name:"caps works",
+        input: "somestring",
+        expected: "SOMESTRING",
+      },
+    }
+
+    for _, x := range tt {
+      t.Run(x.name, func(t *testing.T) {
+        ....
+      })
+    }
+  }
+
+* Testing
+
+The new pattern (1.7+) is similar but allows for subtests, which allows for more flexible patterns
+
+  func subtestFoo (t *testing.T) {
+    ...
+  }
+  
+  func TestWithEnvironment(t *testing.T) {
+    // setup
+    t.Run("EnvTestFoo", subtestFoo)
+    // teardown
+  }
+
+
+* Testing
+
+- Unit tests live with their package. 
+- It's okay to have a package dedicated for generalized testing! 
+
+(eg, [[https://github.com/cayleygraph/cayley/tree/master/graph/graphtest]])
+
+- Integration tests have their own package. 
+
+* Integration Tests and Build Tags
+
+Build tags come at the top of the file:
+
+  // Copyright MyCorp, 2015
+  // +build docker
+
+  // Package foo does something awesome
+  package foo
+  
+  func bar() error {
+    ...
+  }
+
+And are specified at compile time
+
+  $ go build -tags=docker ./foo
+
+This is a neat way to control the need for dependencies; eg, programatically spinning up a database. (But a tag for every package defeats the point)
+
+* Goroutines and channels
+
+Used sparingly, usually for asyncrohny.
+
+Closest analogy is threads (even if Goroutines are somewhat cheaper).
+
+Channel's sender always closes when it's done
+
+_Protip_ Label your directionality -- whether your function expects to send or recieve
+
+* Goroutines and channels
+  func generator(c chan<-) {
+    for {
+      result := doWork()
+      if result != nil {
+        break
+      }
+      c <- result
+    }
+    close(c)
+  }
+
+  func reciever(c <-chan) {
+    for res := <-c {
+      doSomething(res)
+    }
+  }
+
+* Goroutines and channels
+
+Also used for long running process coordination (closing a channel on exit/restart)
+
+  func backgroundThread (closer <-chan) {
+    for {
+      select {
+        case _, ok := <-closer:
+          stopWork()
+          break
+        case <- time.Tick(5 * time.Second):
+          doWork()
+      }
+    }
+  }
+
+* Use `context` from the beginning
+
+After 1.7, `net/context` is now available for all sorts of network-ish functions. This allows you to follow a request, cancel it, append some variables -- it's super helpful. Not using it along with a request-like-structure should require a Good Reason.
+
+* Dependency management
+
+Is so lame. Use [[https://github.com/Masterminds/glide][glide]] and (perhaps soon) [[https://github.com/golang/dep][dep]] 
+
+* Packages in the Wild
+
+* Raindrops on roses...
+
+.image https://timesofrefreshingontheoldpaths.files.wordpress.com/2012/08/a-few-of-my-favorite-things-jan-7-2011.jpg
+
+* Bolt
+
+Embedable B-tree library that gives ACID guarantees and simple persistence with a brilliant KV interface. Also super-readable.
+
+.link https://github.com/boltdb/bolt
+
+* BoomFilters
+
+A collection of a bunch of probabalistic filters (bloom, deletable bloom, cuckoo, ....).
+
+Secret weapon when you need one of these. Just had opportunity to use one myself!
+
+.link https://github.com/tylertreat/BoomFilters
+
+* Viper and Cobra
+
+Dealing with command line arguments is lame. Integrating them with options from your config file is even more lame.
+
+Let Viper (config file) and Cobra (command line) parsers, which are built for each other, take care of the heavy lifting for you. Unless it's a small app, I don't have naything in `main()` except for these.
+
+.link https://github.com/spf13/viper
+.link https://github.com/spf13/cobra
+
+* Logrus
+
+Everyone and their uncle has the pain point that the stdlib `log` doesn't quite work the way they want (including me). The community has more or less spoken, and, Logrus is the answer. (Also a lesson in licensing.)
+
+.link https://github.com/sirupsen/logrus
+
+* Chi
+
+`net/http` is the standard, and works well. If you bring up the words "HTTP Frameworks" to Gophers, you'll get some dirty looks.
+
+That said, I completely understand not wanting to write all the routing tricks again. What's a good compromise?
+
+I was a long-time fan of gin, which mostly did what I want, but if I were starting a new project today, my next one will be chi, because they use the standard interface, `http.Handler`/`http.HandlerFunc` everywhere, so you don't need to compromise. (Unlike wrapping things with `gin.Context`)
+
+.link https://github.com/pressly/chi
+
+* gRPC and gogoprotobuf
+
+RPC is complicated, and there are many options. 99% of the time, protobufs, which are fantastically battle tested, work fine.
+
+We have a really nice Go protobuf generator and it works well with GRPC, which does all the HTTP2 transport/streaming/security/etc.
+
+.link https://github.com/gogo/protobuf
+.link https://grpc.io
+
+* Distributed Systems Tooling
+
+* etcd
+
+_Storing_distributed_state_ was on the list. This is what you want.
+
+RAFT usage everywhere, slick v3 API, even zetcd
+
+.link https://coreos.com/etcd/
+
+* Prometheus
+
+Two approaches to monitoring, Prometheus takes the Google-esque one.
+
+New version just came out, lightweight, works great with grafana. Easy package to instrument your code.
+
+.link https://prometheus.io
+
+* NATS
+
+Message queues. There's also NSQ, but my personal preference is for NATS
+
+.link https://nats.io
+
+* Odds and Ends
+
+* Performance vs C/C++?
+
+Pretty close, but C is usually faster due to age.
+
+1.7 introduced SSA for x86_64 and 1.8 for other architectures. (20% boost)
+
+GC is crazy fast these days, sub-100us-pauses. 1.5 was when this started getting really good.
+
+Calling conventions mean there's a slight cgo overhead (~5% imo)
+
+You can do some serious things with `unsafe` (unsafely)
+
+In case of emergency, you can also write Go ASM
+
+* Long running vs. Short running?
+
+Up to you. There seems to be a lean toward long-running.
+
+The question mentioned vocabulary (ie, "long-running ssh vs short-running agents with fixed (rpc?) vocabulary). Why not both?
+
+* Programmatically calling from/to Go
+
+`os/exec` is the package you want.
+
+Relatively sane, has all the environment knobs. 
+
+* Templating?
+
+`text/template` gets the 80% case. At some point you /may/ need more, but not often (especially as single-page-apps do more)
+
+* Shameless plug
+
+* Cayley
+
+.image https://github.com/cayleygraph/cayley/raw/master/static/branding/cayley_side.png 200 _
+
+Graph database written in Go
+
+Multiple backends (including bolt) and query languages
+
+Some prod users, working toward 1.0
+
+.link https://cayley.io
