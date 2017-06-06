@@ -48,6 +48,7 @@ Best protip from the community last week:
 Start with a single package, and work your way up to structure.
 
 - `cmd` may be an exception
+- Don't use `pkg` (you may see this in other codebases)
 
 * Interfaces
 
@@ -146,6 +147,7 @@ The new pattern (1.7+) is similar but allows for subtests, which allows for more
 (eg, [[https://github.com/cayleygraph/cayley/tree/master/graph/graphtest]])
 
 - Integration tests have their own package. 
+- Benchmarking comes for free (and works great with subtests)
 
 * Integration Tests and Build Tags
 
@@ -215,9 +217,22 @@ Also used for long running process coordination (closing a channel on exit/resta
 
 After 1.7, `net/context` is now available for all sorts of network-ish functions. This allows you to follow a request, cancel it, append some variables -- it's super helpful. Not using it along with a request-like-structure should require a Good Reason.
 
+* My Least Favorite Things :(
+
 * Dependency management
 
-Is so lame. Use [[https://github.com/Masterminds/glide][glide]] and (perhaps soon) [[https://github.com/golang/dep][dep]] 
+Is so, so lame. Use [[https://github.com/Masterminds/glide][glide]] and (perhaps soon) [[https://github.com/golang/dep][dep]] 
+
+* Errors are values
+
+You will get super tired of
+
+  if err != nil {
+    return err
+  }
+
+\... but please do it anyway. The alternatives are worse (panic inside a library, ignoring it, etc). The only place with enough context to handle it is in `main()` or equivalent
+
 
 * Packages in the Wild
 
