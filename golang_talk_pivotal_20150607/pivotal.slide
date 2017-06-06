@@ -33,6 +33,11 @@ You all gave me a good list!
 
 \...with protips "I wish I knew" thrown in
 
+* Raindrops on roses...
+
+.image https://timesofrefreshingontheoldpaths.files.wordpress.com/2012/08/a-few-of-my-favorite-things-jan-7-2011.jpg
+
+
 * Always remember
 
 Best protip from the community last week:
@@ -217,7 +222,7 @@ Also used for long running process coordination (closing a channel on exit/resta
 
 After 1.7, `net/context` is now available for all sorts of network-ish functions. This allows you to follow a request, cancel it, append some variables -- it's super helpful. Not using it along with a request-like-structure should require a Good Reason.
 
-* My Least Favorite Things :(
+* My Least Favorite Language Things :(
 
 * Dependency management
 
@@ -234,11 +239,7 @@ You will get super tired of
 \... but please do it anyway. The alternatives are worse (panic inside a library, ignoring it, etc). The only place with enough context to handle it is in `main()` or equivalent
 
 
-* Packages in the Wild
-
-* Raindrops on roses...
-
-.image https://timesofrefreshingontheoldpaths.files.wordpress.com/2012/08/a-few-of-my-favorite-things-jan-7-2011.jpg
+* Brown Paper Packages Tied Up With... strings?  (Useful Open Source Packages)
 
 * Bolt
 
